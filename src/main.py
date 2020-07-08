@@ -7,18 +7,15 @@ import logging as log
 import time
 import csv
 
-from model import FaceDetector, FaceLandmarks, HeadPose, Gaze
+from model import FaceDetectorModel, FaceLandmarksModel, HeadPoseModel, GazeModel
+
 from mouse_controller import MouseController
 from argparse import ArgumentParser
 
 log.basicConfig(level=log.DEBUG)
 
 def build_argparser():
-    """
-    Parse command line arguments.
-
-    :return: command line arguments
-    """
+    
     parser = ArgumentParser()
     parser.add_argument("-i", "--input", required=True, type=str,
                         help="Path to image or video file. Use CAM to use webcam stream")
@@ -53,18 +50,6 @@ def build_argparser():
                         help="How many frames count to actually run the models."
                         "(20 by default)")
 
-    """    parser.add_argument("-vf", "--view_face", type=str, default=False,
-                    help="Flag to indicate that user wants to see face bounding box")
-
-    parser.add_argument("-ve", "--view_eyes", type=str, default=False,
-                    help="Flag to indicate that user wants to see eyes bounding boxes")
-
-    parser.add_argument("-vh", "--view_headpose", type=str, default=False,
-                    help="Flag to indicate that user wants to see headpose angles")
-
-    parser.add_argument("-vg", "--view_gaze", type=str, default=False,
-                    help="Flag to indicate that user wants to see gaze direction") """
-
     return parser
 
 # Function to instantiate and return models:
@@ -76,26 +61,28 @@ def get_models(args):
 
     # Get face detector model:
     if model_facedetector:
-        facedetector = FaceDetector(model_path=model_facedetector, device=args.device)
+        facedetector = FaceDetectorModel(model_path=model_facedetector, device=args.device)
+        # facedetector = FaceDetectionModel(model_path=model_facedetector, device=args.device)
     else:
-        facedetector = FaceDetector(device=args.device)
+        facedetector = FaceDetectorModel(device=args.device)
+        # facedetector = FaceDetectionModel(device=args.device)
     
     # Get face landmarks detector model:
     if model_facelm:
-        facelm = FaceLandmarks(model_path=model_facelm, device=args.device)
+        facelm = FaceLandmarksModel(model_path=model_facelm, device=args.device)
     else:
-        facelm = FaceLandmarks(device=args.device)
+        facelm = FaceLandmarksModel(device=args.device)
     
     # Get headpose detector model:
     if model_headpose:
-        headpose = HeadPose(model_path=model_headpose, device=args.device)
+        headpose = HeadPoseModel(model_path=model_headpose, device=args.device)
     else:
-        headpose = HeadPose(device=args.device)
+        headpose = HeadPoseModel(device=args.device)
 
     if model_gaze:
-        gaze = Gaze(model_path=model_gaze, device=args.device)
+        gaze = GazeModel(model_path=model_gaze, device=args.device)
     else:
-        gaze = Gaze()
+        gaze = GazeModel()
 
     return facedetector, facelm, headpose, gaze
 
@@ -111,19 +98,17 @@ def gaze_pointer_controller(args, facedetector, facelm, headpose, gaze):
     inference_time_gaze = []
     if args.input != 'CAM':
         try:
-            # It seems that OpenCV can use VideoCapture to treat videos and images:
             input_stream = cv2.VideoCapture(args.input)
             length = int(input_stream.get(cv2.CAP_PROP_FRAME_COUNT))
             webcamera = False
 
-            # Check if input is an image or video file:
             if length > 1:
                 single_image_mode = False
             else:
                 single_image_mode = True
 
         except:
-            print('Not supported image or video file format. Please pass a supported one.')
+            print('Not supported file format.')
             exit()
 
     else:
@@ -146,39 +131,34 @@ def gaze_pointer_controller(args, facedetector, facelm, headpose, gaze):
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     break
 
-                # We get a detected face crop and its coordinates:
                 face_crop, detection = facedetector.get_face_crop(frame, args)
                 finish_face_detector_time = time.time()
                 face_detector_time = round(finish_face_detector_time-start,5)
-                log.info("Face detection took {} seconds.".format(face_detector_time))
+                # log.info("Face detection took {} seconds.".format(face_detector_time))
                 inference_time_face.append(face_detector_time)
 
-                # Obtain eyes coordinates:
                 right_eye, left_eye = facelm.get_eyes_coordinates(face_crop)
 
-                # Obtain eyes crops:
                 right_eye_crop, left_eye_crop, right_eye_coords, left_eye_coords = utils.get_eyes_crops(face_crop, right_eye,left_eye)
                 finish_eyes_coordinates = time.time()
                 eyes_detector_time = round(finish_eyes_coordinates-finish_face_detector_time,5)
-                log.info("Eyes detection took {} seconds.".format(eyes_detector_time))
+                # log.info("Eyes detection took {} seconds.".format(eyes_detector_time))
                 inference_time_landmarks.append(eyes_detector_time)
 
-                # Obtain headpose angles:
                 headpose_angles = headpose.get_headpose_angles(face_crop)
                 finish_headpose_angles = time.time()
                 headpose_detector_time = round(finish_headpose_angles-finish_eyes_coordinates,5)
-                log.info("Headpose angles detection took {} seconds.".format(headpose_detector_time))
+                #log.info("Headpose angles detection took {} seconds.".format(headpose_detector_time))
                 inference_time_headpose.append(headpose_detector_time)
 
-                # Obtain gaze vector and mouse movement values:
                 (x_movement, y_movement), gaze_vector = gaze.get_gaze(right_eye_crop, left_eye_crop, headpose_angles)
                 finish_gaze_detection_time = time.time()
                 gaze_detector_time = round(finish_gaze_detection_time-finish_headpose_angles,5)
-                log.info("Gaze detection took {} seconds.".format(gaze_detector_time))
+                # log.info("Gaze detection took {} seconds.".format(gaze_detector_time))
                 inference_time_gaze.append(gaze_detector_time)
 
 
-                # Graphics on frames
+                # because Ubuntu doesn't move the mouse much, draw graphics
                 
                 frame = cv2.rectangle(frame,(detection[0],detection[1]),(detection[2],detection[3]),color=(0,255,0), thickness=5)
 

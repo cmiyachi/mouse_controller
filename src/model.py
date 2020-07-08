@@ -20,7 +20,7 @@ HEAD_POSE_MODEL = 'intel/head-pose-estimation-adas-0001/FP16/head-pose-estimatio
 FACE_LANDMARKS_MODEL = 'intel/landmarks-regression-retail-0009/FP16/landmarks-regression-retail-0009.xml'
 GAZE_ESTIMATION_MODEL = 'intel/gaze-estimation-adas-0002/FP16/gaze-estimation-adas-0002.xml'
 
-class GenericModel:
+class BaseModel:
     '''
     Class for controlling similar model characteristics.
     '''
@@ -107,7 +107,7 @@ class GenericModel:
         return self.outputs
 
 
-class FaceDetector(GenericModel):
+class FaceDetectorModel(BaseModel):
 
     def __init__(self, model_path=FACE_DETECTION_MODEL, device='CPU'):
         super().__init__(device=device)
@@ -151,7 +151,7 @@ class FaceDetector(GenericModel):
 
         return frame[detection[1]:detection[3], detection[0]:detection[2]], detection
 
-class HeadPose(GenericModel):
+class HeadPoseModel(BaseModel):
 
     def __init__(self, model_path=HEAD_POSE_MODEL, device='CPU'):
         super().__init__(device=device)
@@ -182,7 +182,7 @@ class HeadPose(GenericModel):
         return output
 
 
-class FaceLandmarks(GenericModel):
+class FaceLandmarksModel(BaseModel):
 
     def __init__(self, model_path=FACE_LANDMARKS_MODEL, device='CPU'):
         super().__init__(device=device)
@@ -209,8 +209,7 @@ class FaceLandmarks(GenericModel):
         return right_eye, left_eye
 
 
-# Gaze is the most different type of model, it is necessary to make some major changes.
-class Gaze(GenericModel):
+class GazeModel(BaseModel):
     def __init__(self, model_path=GAZE_ESTIMATION_MODEL, device='CPU'):
         super().__init__(device=device)
         self.load_model(model_path)
@@ -219,9 +218,6 @@ class Gaze(GenericModel):
         self.input_shape = self.net_plugin.inputs[self.input_name[1]].shape
     
     def predict(self, left_eye_crop, right_eye_crop, headpose_angles, request_id=0):
-        '''
-        Function to make an async inference request.
-        '''
         preprocessed_left_eye_crop, preprocessed_right_eye_crop = self.preprocess_input(left_eye_crop, right_eye_crop)
 
         self.infer_request_handle = self.net_plugin.start_async(request_id=request_id, 
