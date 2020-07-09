@@ -21,9 +21,7 @@ FACE_LANDMARKS_MODEL = 'intel/landmarks-regression-retail-0009/FP16/landmarks-re
 GAZE_ESTIMATION_MODEL = 'intel/gaze-estimation-adas-0002/FP16/gaze-estimation-adas-0002.xml'
 
 class BaseModel:
-    '''
-    Class for controlling similar model characteristics.
-    '''
+
     def __init__(self, device):
         self.device = device
         self.net = None
@@ -50,10 +48,7 @@ class BaseModel:
         if cpu_extension and 'CPU' in self.device:
             self.plugin.add_extension(cpu_extension, "CPU")
 
-        log.info("Reading IR...")
-        self.net = IENetwork(model=model_xml, weights=model_bin)
-
-        log.info("Loading IR to the plugin...")
+        self.net = IECore().read_network(model=model_xml, weights=model_bin) #IENetwork(model=model_xml, weights=model_bin)
 
         # If applicable, add a CPU extension to self.plugin
         if "CPU" in self.device:
@@ -61,10 +56,7 @@ class BaseModel:
             not_supported_layers = [layer for layer in self.net.layers.keys() if layer not in supported_layers]
 
             if len(not_supported_layers) != 0:
-                log.error("Following layers are not supported by the plugin for specified device {}:\n {}".
-                          format(self.device,', '.join(not_supported_layers)))
-                log.error("Please try to specify another cpu extension library path (via -l or --cpu_extension command line parameters)"
-                          " that support required model layers or try, in last case, with other model")
+                log.error("Layer not supported")
                 sys.exit(1)
 
         # Load the model to the network:
@@ -74,7 +66,7 @@ class BaseModel:
         self.input_blob = next(iter(self.net.inputs))
         self.out_blob = next(iter(self.net.outputs))
         finish_time = time.time()
-        log.info("Model {} took {} seconds to load.".format(self.__class__.__name__, round(finish_time-start_time,4)))
+        log.info("Model {} load time: {} seconds.".format(self.__class__.__name__, round(finish_time-start_time,4)))
         return self.plugin
 
     def predict(self, image, request_id=0):
