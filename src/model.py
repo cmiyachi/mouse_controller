@@ -10,15 +10,15 @@ import math
 import time
 from openvino.inference_engine import IENetwork, IECore
 
-# FACE_DETECTION_MODEL = 'intel/face-detection-adas-0001/FP32/face-detection-adas-0001.xml'
-# HEAD_POSE_MODEL = 'intel/head-pose-estimation-adas-0001/FP32/head-pose-estimation-adas-0001.xml'
-# FACE_LANDMARKS_MODEL = 'intel/landmarks-regression-retail-0009/FP32/landmarks-regression-retail-0009.xml'
-# GAZE_ESTIMATION_MODEL = 'intel/gaze-estimation-adas-0002/FP32/gaze-estimation-adas-0002.xml'
+FACE_DETECTION_MODEL = 'intel/face-detection-adas-0001/FP32/face-detection-adas-0001.xml'
+HEAD_POSE_MODEL = 'intel/head-pose-estimation-adas-0001/FP32/head-pose-estimation-adas-0001.xml'
+FACE_LANDMARKS_MODEL = 'intel/landmarks-regression-retail-0009/FP32/landmarks-regression-retail-0009.xml'
+GAZE_ESTIMATION_MODEL = 'intel/gaze-estimation-adas-0002/FP32/gaze-estimation-adas-0002.xml'
 
-FACE_DETECTION_MODEL = 'intel/face-detection-adas-0001/FP16/face-detection-adas-0001.xml'
-HEAD_POSE_MODEL = 'intel/head-pose-estimation-adas-0001/FP16/head-pose-estimation-adas-0001.xml'
-FACE_LANDMARKS_MODEL = 'intel/landmarks-regression-retail-0009/FP16/landmarks-regression-retail-0009.xml'
-GAZE_ESTIMATION_MODEL = 'intel/gaze-estimation-adas-0002/FP16/gaze-estimation-adas-0002.xml'
+# FACE_DETECTION_MODEL = 'intel/face-detection-adas-0001/FP16/face-detection-adas-0001.xml'
+# HEAD_POSE_MODEL = 'intel/head-pose-estimation-adas-0001/FP16/head-pose-estimation-adas-0001.xml'
+# FACE_LANDMARKS_MODEL = 'intel/landmarks-regression-retail-0009/FP16/landmarks-regression-retail-0009.xml'
+# GAZE_ESTIMATION_MODEL = 'intel/gaze-estimation-adas-0002/FP16/gaze-estimation-adas-0002.xml'
 
 class BaseModel:
 
@@ -35,7 +35,7 @@ class BaseModel:
 
     def load_model(self, model, cpu_extension=None, plugin=None):
         start_time = time.time()
-        # Obtain model files path:
+   
         model_xml = model
         model_bin = os.path.splitext(model_xml)[0] + ".bin"
 
@@ -59,10 +59,8 @@ class BaseModel:
                 log.error("Layer not supported")
                 sys.exit(1)
 
-        # Load the model to the network:
         self.net_plugin = self.plugin.load_network(network=self.net, device_name=self.device)
 
-        # Obtain other relevant information:
         self.input_blob = next(iter(self.net.inputs))
         self.out_blob = next(iter(self.net.outputs))
         finish_time = time.time()
@@ -113,7 +111,6 @@ class FaceDetectorModel(BaseModel):
 
         threshold = args.prob_threshold
 
-        # Obtain face coordinates:
         try:
             self.predict(frame)
             self.wait()
@@ -133,10 +130,9 @@ class FaceDetectorModel(BaseModel):
                     ymax = o[6]
                     detection.append([xmin, ymin, xmax, ymax])
 
-        # I will only use one detection, as only one face can control the pointer
-        detection = detection[0]
+        detection = detection[0] # just use first face
 
-        # Converting relative coordinates to absolute coordinates:
+
         w = frame.shape[1]
         h = frame.shape[0]
         detection = [int(detection[0]*w), int(detection[1]*h), int(detection[2]*w), int(detection[3]*h)]
@@ -160,7 +156,6 @@ class HeadPoseModel(BaseModel):
         return [self.outputs['angle_y_fc'][0,0], self.outputs['angle_p_fc'][0,0], self.outputs['angle_r_fc'][0,0]]
 
 
-    # Function to obtain headpose angles from a face crop:
     def get_headpose_angles(self, face_crop):
 
         try:
@@ -220,9 +215,6 @@ class GazeModel(BaseModel):
         return self.net_plugin
 
     def preprocess_input(self, left_eye_crop, right_eye_crop):
-        '''
-        Function to preprocess input image according to model requirement.
-        '''
 
         preprocessed_left_eye_crop = utils.handle_image(left_eye_crop, self.input_shape[3], self.input_shape[2])
         preprocessed_right_eye_crop = utils.handle_image(right_eye_crop, self.input_shape[3], self.input_shape[2])

@@ -1,4 +1,3 @@
-'''Script to run the application'''
 
 import cv2
 import numpy as np
@@ -20,19 +19,17 @@ def build_argparser():
     parser.add_argument("-i", "--input", required=True, type=str,
                         help="Path to image or video file. Use CAM to use webcam stream")
     
-    # Optional arguments:
-
-    # Models:
+    # all arguments are optional below
     parser.add_argument("-mf", "--model_facedetector", required=False, type=str, default=None,
-                        help="Path to an xml file with a trained face detector model.")
+                        help="Path to face detector model.")
     parser.add_argument("-ml", "--model_facelm", required=False, type=str, default=None,
-                        help="Path to an xml file with a trained face landmarks detector model.")
+                        help="Path to face landmarks detector model.")
     parser.add_argument("-mh", "--model_headpose", required=False, type=str, default=None,
-                        help="Path to an xml file with a trained head pose detector model.")
+                        help="Path to head pose detector model.")
     parser.add_argument("-mg", "--model_gaze", required=False, type=str, default=None,
-                        help="Path to an xml file with a trained gaze detector model.")
+                        help="Path to gaze detector model.")
 
-    # Models handlers:                                                            
+                                                          
     parser.add_argument("-l", "--cpu_extension", required=False, type=str,
                         default=None,
                         help="MKLDNN (CPU)-targeted custom layers."
@@ -44,22 +41,17 @@ def build_argparser():
                              "will look for a suitable plugin for device "
                              "specified (CPU by default)")
     parser.add_argument("-pt", "--prob_threshold", type=float, default=0.5,
-                        help="Probability threshold for detections filtering"
-                        "(0.5 by default)")
-    parser.add_argument("-fc", "--frame_count", type=float, default=20,
-                        help="How many frames count to actually run the models."
-                        "(20 by default)")
+                        help="Probability threshold for detections filtering")
 
     return parser
 
-# Function to instantiate and return models:
+
 def get_models(args):
     model_facedetector = args.model_facedetector
     model_facelm = args.model_facelm
     model_headpose = args.model_headpose
     model_gaze = args.model_gaze
 
-    # Get face detector model:
     if model_facedetector:
         facedetector = FaceDetectorModel(model_path=model_facedetector, device=args.device)
         # facedetector = FaceDetectionModel(model_path=model_facedetector, device=args.device)
@@ -67,13 +59,11 @@ def get_models(args):
         facedetector = FaceDetectorModel(device=args.device)
         # facedetector = FaceDetectionModel(device=args.device)
     
-    # Get face landmarks detector model:
     if model_facelm:
         facelm = FaceLandmarksModel(model_path=model_facelm, device=args.device)
     else:
         facelm = FaceLandmarksModel(device=args.device)
     
-    # Get headpose detector model:
     if model_headpose:
         headpose = HeadPoseModel(model_path=model_headpose, device=args.device)
     else:
@@ -126,7 +116,9 @@ def gaze_pointer_controller(args, facedetector, facelm, headpose, gaze):
             if not flag:
                 break
 
-            if count % args.frame_count == 0:
+            frame_count = 20
+            if count % frame_count == 0:
+
                 start = time.time()
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     break
@@ -134,7 +126,6 @@ def gaze_pointer_controller(args, facedetector, facelm, headpose, gaze):
                 face_crop, detection = facedetector.get_face_crop(frame, args)
                 finish_face_detector_time = time.time()
                 face_detector_time = round(finish_face_detector_time-start,5)
-                # log.info("Face detection took {} seconds.".format(face_detector_time))
                 inference_time_face.append(face_detector_time)
 
                 right_eye, left_eye = facelm.get_eyes_coordinates(face_crop)
@@ -142,19 +133,16 @@ def gaze_pointer_controller(args, facedetector, facelm, headpose, gaze):
                 right_eye_crop, left_eye_crop, right_eye_coords, left_eye_coords = utils.get_eyes_crops(face_crop, right_eye,left_eye)
                 finish_eyes_coordinates = time.time()
                 eyes_detector_time = round(finish_eyes_coordinates-finish_face_detector_time,5)
-                # log.info("Eyes detection took {} seconds.".format(eyes_detector_time))
                 inference_time_landmarks.append(eyes_detector_time)
 
                 headpose_angles = headpose.get_headpose_angles(face_crop)
                 finish_headpose_angles = time.time()
                 headpose_detector_time = round(finish_headpose_angles-finish_eyes_coordinates,5)
-                #log.info("Headpose angles detection took {} seconds.".format(headpose_detector_time))
                 inference_time_headpose.append(headpose_detector_time)
 
                 (x_movement, y_movement), gaze_vector = gaze.get_gaze(right_eye_crop, left_eye_crop, headpose_angles)
                 finish_gaze_detection_time = time.time()
                 gaze_detector_time = round(finish_gaze_detection_time-finish_headpose_angles,5)
-                # log.info("Gaze detection took {} seconds.".format(gaze_detector_time))
                 inference_time_gaze.append(gaze_detector_time)
 
 
@@ -182,16 +170,16 @@ def gaze_pointer_controller(args, facedetector, facelm, headpose, gaze):
 
                 frame = cv2.putText(frame, 'Yaw: '+str(headpose_angles[0])+' '+'Pitch: '+str(headpose_angles[1])+' '+'Roll: '+str(headpose_angles[2]),(15,20),cv2.FONT_HERSHEY_SIMPLEX,0.65,(0,0,0),2)
 
-                # Resizing window for visualization convenience:
-                cv2.namedWindow('Prueba',cv2.WINDOW_NORMAL)
-                cv2.resizeWindow('Prueba', 600,400)
-                cv2.imshow('Prueba', frame)
+      
+                cv2.namedWindow('Miyachi',cv2.WINDOW_NORMAL)
+                cv2.resizeWindow('Miyachi', 600,400)
+                cv2.imshow('Miyachi', frame)
 
                 mouse_controller.move(x_movement,y_movement)
             count = count + 1
 
         input_stream.release()
-        with open('times.csv', 'w', newline='') as csvfile:
+        with open('benchmarks.csv', 'w', newline='') as csvfile:
             writer = csv.writer(csvfile, delimiter=',')
             writer.writerow(['Face Detector','Eyes Detector', 'Headpose Detector', 'Gaze Detector'])
             for i in range(len(inference_time_face)):
@@ -201,18 +189,14 @@ def gaze_pointer_controller(args, facedetector, facelm, headpose, gaze):
 
 
 def main():
-    """
-    Load the network and parse the output.
-
-    :return: None
-    """
-    # Grab command line args
+   
+    # Read command line args
     args = build_argparser().parse_args()
 
-    # Get the models:
+    # Load the models
     facedetector, facelm, headpose, gaze = get_models(args)
 
-    # Initiate:
+    # Do the work
     gaze_pointer_controller(args, facedetector, facelm, headpose, gaze)
 
 
