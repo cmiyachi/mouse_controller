@@ -5,10 +5,10 @@ This is the final project for the Udacity Edge AI for IoT
 This project uses a number of models that work together in the following way. 
 
 <p align="center">
-<img src="resources/pipeline.png" />
+<img src="resources/pipeline.png" width=400px height=350px />
 </p>
 
-Here is an image of the ouptput
+Here is an image of the ouptput.  It is hard to see but I drew boxes around the face detected, around each eye, and then a red arrow for the direction of the gaze. 
 
 <img src="resources/PointerGif.gif" />
 ## Project Set Up and Installation
