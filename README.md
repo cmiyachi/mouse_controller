@@ -5,9 +5,12 @@ This is the final project for the Udacity Edge AI for IoT
 This project uses a number of models that work together in the following way. 
 
 <p align="center">
-<img src="resources/pipeline.png" width=400px height=350px/>
+<img src="resources/pipeline.png" />
 </p>
 
+Here is an image of the ouptput
+
+<img src="resources/PointerGif.gif" />
 ## Project Set Up and Installation
 
 ### Step 1. Install OpenVINO
