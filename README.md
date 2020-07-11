@@ -8,7 +8,7 @@ This project uses a number of models that work together in the following way.
 <img src="resources/pipeline.png" width=400px height=350px />
 </p>
 
-Here is an image of the ouptput.  It is hard to see but I drew boxes around the face detected, around each eye, and then a red arrow for the direction of the gaze. 
+Here is an image of the ouptput.  It is hard to see but I drew boxes around the face detected, around each eye, and then a red arrow for the direction of the gaze. Notice that the mouse does move with the gaze but it is easier to see with the arrows. 
 
 <img src="resources/PointerGif.gif" />
 ## Project Set Up and Installation
